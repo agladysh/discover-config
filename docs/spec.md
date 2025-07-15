@@ -157,14 +157,40 @@ Return a recursive `pwd-parent[]-workspace-user-system` pentad structure to repr
 - **Path handling**:
   - Use `path.normalize` for cross-platform paths.
   - Handle case-insensitive filesystems.
-  - Support long paths (>260 chars) with `\\?\` prefix.
+- Support long paths (>260 chars) with `\\?\` prefix.
+  ```javascript
+  // Normalize long paths on Windows
+  function withLongPathPrefix(p) {
+    if (process.platform === 'win32' && p.length >= 260 && !p.startsWith('\\\\?\\')) {
+      return '\\?\\' + path.resolve(p);
+    }
+    return p;
+  }
+  ```
 - **Mappings**:
   - `$HOME`: `%USERPROFILE%`.
   - `$XDG_CONFIG_HOME`: `%APPDATA%` or `%LOCALAPPDATA%`.
   - `/etc/`: `%ProgramData%`, `%APPDATA%`, `%LOCALAPPDATA%`.
 - **Registry**:
-  - Optional check for `HKEY_CURRENT_USER\Software\<appName>\ConfigPath`, `HKEY_LOCAL_MACHINE\Software\<appName>\ConfigPath`.
-  - Skip invalid/missing keys.
+- Optional check for `HKEY_CURRENT_USER\Software\<appName>\ConfigPath`, `HKEY_LOCAL_MACHINE\Software\<appName>\ConfigPath`.
+- Skip invalid/missing keys.
+  ```javascript
+  // Read config path from Windows Registry if module is present
+  let WinReg;
+  try {
+    WinReg = require('winreg');
+  } catch {
+    WinReg = null;
+  }
+
+  async function readRegistryPath(appName) {
+    if (!WinReg) return null; // module not installed
+    const reg = new WinReg({ hive: WinReg.HKCU, key: `\\Software\\${appName}` });
+    return new Promise(resolve =>
+      reg.get('ConfigPath', (err, item) => resolve(err ? null : item.value))
+    );
+  }
+  ```
 - **Edge cases**:
   - Handle case variations (e.g., `.MyApp` vs `.myapp`).
   - Skip inaccessible paths.
@@ -199,6 +225,22 @@ Return a recursive `pwd-parent[]-workspace-user-system` pentad structure to repr
 
 ### 10. Performance
 - Minimize filesystem calls (e.g., cache `fs.stat`).
+  ```javascript
+  // Simple in-memory cache for fs.stat results
+  const statCache = new Map();
+
+  async function statCached(p) {
+    if (statCache.has(p)) return statCache.get(p);
+    try {
+      const s = await fs.promises.stat(p);
+      statCache.set(p, s);
+      return s;
+    } catch {
+      statCache.set(p, null);
+      return null;
+    }
+  }
+  ```
 - Parallelize independent scope checks.
 - Handle large directory trees and pattern sets efficiently.
 
