@@ -2,12 +2,6 @@
 
 ## Purpose
 Provide a lightweight, cross-platform, discovery-only mechanism for locating configuration files, directories, and workspace boundaries in a Node.js environment, mimicking standard CLI tool patterns (e.g., Git, SSH, npm) while adhering to XDG Base Directory Specification, Linux Filesystem Hierarchy Standard (FHS), POSIX, and Windows conventions. The system uses a recursive, modular design to return structured data (configs, directories, boundaries) without parsing, prioritizing standards compliance with configurable overrides.
-## Cognitive Engineering
-- **Minimal mental model**: Provide a small set of consistent scopes (env, project, workspace, user, system) so developers can reason about the search process.
-- **Predictable precedence**: Deterministic ordering reduces surprises.
-- **Discoverable API**: Small surface area with clear naming.
-- **Fail-safe defaults**: Sensible behaviors out of the box.
-- **Extensible**: Advanced options are available but optional.
 
 ## Scope
 - **Discovery only**: Return paths for config files, directories, and boundaries without parsing.
@@ -213,6 +207,17 @@ Return a recursive `pwd-parent[]-workspace-user-system` pentad structure to repr
 - **Node.js**: Support >= 14 (LTS as of 2025).
 - **No parsing**: Return paths only.
 - **No CLI**: Process env vars only for overrides (`$APPNAME_CONFIG`, `$APPNAME_DIR`).
+
+### 12. Notes
+- **Standards precedence**:
+  - Prioritize XDG (e.g., `$XDG_CONFIG_HOME`, `$XDG_CONFIG_DIRS`), FHS (e.g., `/etc/`), and POSIX (e.g., dot-prefixed files, symlink resolution) unless overridden.
+  - Allow reasonable violations via options (e.g., `searchLocations`, `patterns`, `skipLocations`) per KISS principles.
+- **Future work**:
+  - Support registry-like mechanisms for macOS (e.g., `~/Library/Preferences`, `plist` files) and Linux (e.g., `/usr/share`, `dconf`) for config file paths.
+  - YAGNI: Defer implementation, but ensure API extensibility (e.g., new scope types).
+- **Standalone discovery**:
+  - Workspace boundary and config dir discovery are exposed as standalone functions for flexibility.
+  - These can be used independently or combined with config file discovery.
 
 ## Recursive Design
 - **Scopes**: Each scope (env, project, workspace, user, system, registry) uses a single discovery function:
